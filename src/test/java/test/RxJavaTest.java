@@ -1,7 +1,5 @@
 package test;
 
-import com.ringcentral.health.*;
-import rx.Observable;
 
 
 //@RunWith(MockitoJUnitRunner.class)
@@ -103,27 +101,27 @@ public class RxJavaTest {
 
     }
 
-    private static class HChF implements HealthCheckFunction {
-
-        private HealthCheckID id;
-
-        HChF(String name) {
-            this.id = new HealthCheckID(name);
-        }
-
-        @Override
-        public HealthCheckID getId() {
-            return id;
-        }
-
-        @Override
-        public HealthCheckResult checkHealth() throws Exception {
-            System.out.println("Starting " + id.getShortName() + " on thread " + Thread.currentThread().getName());
-            Thread.sleep(Math.random() >= 0.1 ? 2000 : 10000);
-            if (Math.random() <= 0.1) {
-                throw new RuntimeException("Ouch!!!");
-            }
-            return Math.random() >= 0.1 ? ok() : critical("Some error!!!");
-        }
-    }
+//    private static class HChF implements HealthCheckFunction {
+//
+//        private HealthCheckID id;
+//
+//        HChF(String name) {
+//            this.id = new HealthCheckID(name);
+//        }
+//
+//        @Override
+//        public HealthCheckID getId() {
+//            return id;
+//        }
+//
+//        @Override
+//        public HealthCheckResult checkHealth() throws Exception {
+//            System.out.println("Starting " + id.getShortName() + " on thread " + Thread.currentThread().getName());
+//            Thread.sleep(Math.random() >= 0.1 ? 2000 : 10000);
+//            if (Math.random() <= 0.1) {
+//                throw new RuntimeException("Ouch!!!");
+//            }
+//            return Math.random() >= 0.1 ? ok() : critical("Some error!!!");
+//        }
+//    }
 }

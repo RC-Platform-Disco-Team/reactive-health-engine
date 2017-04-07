@@ -1,7 +1,9 @@
-apply plugin: 'java'
-apply plugin: 'groovy'
-apply plugin: 'idea'
-apply plugin: "io.franzbecker.gradle-lombok"
+plugins {
+    id 'java'
+    id 'groovy'
+    id 'idea'
+    id 'io.franzbecker.gradle-lombok' version '1.8'
+}
 
 group = 'com.ringcentral.platform'
 version = '1.0.0-SNAPSHOT'
@@ -22,21 +24,7 @@ dependencies {
     compile group: 'io.reactivex', name: 'rxjava', version: '1.1.10'
     compile group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
-    compile group: 'com.ringcentral.platform', name: 'hystrix-addons', version: '1.0.0'
-    testCompile(group: 'org.spockframework', name: 'spock-core', version: '1.0-groovy-2.4')
-}
+    testCompile group: 'org.spockframework', name: 'spock-core', version: '1.0-groovy-2.4'
+    testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.9'
 
-buildscript {
-
-    repositories {
-        mavenLocal()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-
-    dependencies {
-        classpath "io.franzbecker:gradle-lombok:1.6"
-        classpath "net.researchgate:gradle-release:2.4.0"
-    }
 }
