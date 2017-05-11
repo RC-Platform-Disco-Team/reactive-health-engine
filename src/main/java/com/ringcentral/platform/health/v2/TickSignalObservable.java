@@ -5,7 +5,6 @@ import com.ringcentral.platform.health.HealthCheckSignal;
 import com.ringcentral.platform.health.HealthCheckSignal.TickSignal;
 import com.ringcentral.platform.health.HealthEngineConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import rx.Observable;
 import rx.Scheduler;
 

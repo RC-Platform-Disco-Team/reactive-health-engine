@@ -27,8 +27,8 @@ class IsolatingScheduledThreadPool implements ScheduledThreadPool {
     }
 
     public IsolatingScheduledThreadPool(List<HealthCheckFunction> functions, Function<HealthCheckID, String> threadNamingFunction) {
-        schedulers = Collections.unmodifiableMap(
-                functions == null ? Collections.emptyMap() : functions.stream().collect(
+        schedulers = Collections.unmodifiableMap(functions == null ? Collections.emptyMap() :
+                functions.stream().collect(
                         Collectors.toMap(HealthCheckFunction::getId,
                                 t -> Schedulers.from(Executors.newSingleThreadExecutor(new DefaultThreadFactory(threadNamingFunction.apply(t.getId()))))
                         )
