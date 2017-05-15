@@ -18,7 +18,7 @@ class HealthResultsAnalyzerTest extends Specification {
     def "should set global health to the highest severity of results"() {
         setup:
         def state = Mock(HealthState)
-        def analyzer = new HealthResultsAnalyzer(state)
+        def analyzer = HealthResultsAnalyzer.create(state)
         def subject = PublishSubject.<HealthCheckSignal> create()
 
         when:
