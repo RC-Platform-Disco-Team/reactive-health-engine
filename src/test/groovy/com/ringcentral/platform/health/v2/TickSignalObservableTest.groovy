@@ -31,7 +31,7 @@ class TickSignalObservableTest extends Specification {
         3 * healthCfg.get() >> v2
 
         def testScheduler = new TestScheduler()
-        def observable = TickSignalObservable.createObservable(engineCfg, healthCfg, testScheduler)
+        def observable = TickSignalObservable.create(engineCfg, healthCfg, testScheduler)
         def subscriber = new TestSubscriber<>()
 
         when:

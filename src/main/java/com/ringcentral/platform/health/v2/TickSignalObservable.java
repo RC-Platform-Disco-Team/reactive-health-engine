@@ -27,9 +27,9 @@ public class TickSignalObservable {
      * @param scheduler            scheduler for emitting thread
      * @return observable
      */
-    static Observable<TickSignal> createObservable(HealthEngineConfig engineCfg,
-                                                   Supplier<HealthCheckConfig> healthConfigProvider,
-                                                   Scheduler scheduler) {
+    static Observable<TickSignal> create(HealthEngineConfig engineCfg,
+                                         Supplier<HealthCheckConfig> healthConfigProvider,
+                                         Scheduler scheduler) {
         if (engineCfg == null) {
             throw new IllegalStateException("Health engine config cannot be null");
         }
@@ -37,6 +37,16 @@ public class TickSignalObservable {
             throw new IllegalStateException("Health engine config cannot be null");
         }
         return Observable.interval(engineCfg.getTickSignalPeriod().getSeconds(), SECONDS, scheduler).map(l -> sendTick(healthConfigProvider));
+    }
+
+    /**
+     * Creates observable with 1 signal
+     *
+     * @param healthConfigProvider provider for health checks configuration
+     * @return observable
+     */
+    static Observable<TickSignal> once(Supplier<HealthCheckConfig> healthConfigProvider) {
+        return Observable.just(sendTick(healthConfigProvider));
     }
 
     private static HealthCheckSignal.TickSignal sendTick(Supplier<HealthCheckConfig> healthConfigProvider) {

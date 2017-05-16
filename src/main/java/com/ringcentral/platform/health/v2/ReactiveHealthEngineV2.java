@@ -1,9 +1,12 @@
 package com.ringcentral.platform.health.v2;
 
 import com.ringcentral.platform.health.*;
+import com.ringcentral.platform.health.HealthCheckSignal.TickSignal;
 import lombok.extern.slf4j.Slf4j;
 import rx.Observable;
+import rx.Subscriber;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import java.time.Clock;
@@ -19,7 +22,9 @@ public class ReactiveHealthEngineV2 implements HealthEngine {
     private Clock clock;
     private final HealthState state;
     private final HealthCheckExecutor scheduledExecutor;
+    private final HealthCheckExecutor forcedExecutor;
     private final Subject<HealthCheckResult, HealthCheckResultWrapper> passiveSubject;
+    private final Subject<HealthCheckResultWrapper, HealthCheckResultWrapper> forceSubject;
 
     public ReactiveHealthEngineV2(HealthCheckConfig checkCfg, HealthEngineConfig engineCfg,
                                   Clock clock, List<HealthCheckFunction> checkFunctions) {
@@ -29,20 +34,30 @@ public class ReactiveHealthEngineV2 implements HealthEngine {
         //TODO create according to config
         ScheduledThreadPool scheduledThreadPool = new IsolatingScheduledThreadPool(checkFunctions);
         this.scheduledExecutor = new HealthCheckExecutor(engineCfg, scheduledThreadPool, clock);
+        ScheduledThreadPool forcedThreadPool = new IsolatingScheduledThreadPool(checkFunctions);
+        this.forcedExecutor = new HealthCheckExecutor(engineCfg, forcedThreadPool, clock);
+        forceSubject = PublishSubject.<HealthCheckResultWrapper>create().toSerialized();
 
         HealthCheckSplitter healthCheckSplitter = new HealthCheckSplitter(checkFunctions, state);
 
         //TODO extract
-        Observable<HealthCheckResultWrapper> activeObservable = TickSignalObservable.createObservable(engineCfg, currentHealthCheckConfig::get, Schedulers.immediate())
+        Observable<HealthCheckResultWrapper> activeObservable = TickSignalObservable.create(engineCfg, currentHealthCheckConfig::get, Schedulers.immediate())
                 .flatMap(healthCheckSplitter::convertTickToRequest)
                 .flatMap(scheduledExecutor::execute)
                 .observeOn(Schedulers.newThread());
         //TODO add boolean into Config
         passiveSubject = PassiveSignalHandler.createPassiveSubject(checkFunctions, true);
 
-        HealthResultsAnalyzer analyzer = new HealthResultsAnalyzer(state);
+        Subscriber<HealthCheckSignal> analyzer = HealthResultsAnalyzer.create(state);
 
-        activeObservable.subscribe(analyzer);
+
+        Observable<HealthCheckResultWrapper> resultingObservable = Observable.merge(passiveSubject, activeObservable, forceSubject);
+
+        resultingObservable.subscribe(analyzer);
+
+        TickSignalObservable.once(currentHealthCheckConfig::get).flatMap(healthCheckSplitter::convertTickToRequest)
+                .flatMap(forcedExecutor::execute).toBlocking().subscribe(forceSubject::onNext, e -> {throw new ForceHealthCheckFailedException("", e);});
+
     }
 
     @Override
