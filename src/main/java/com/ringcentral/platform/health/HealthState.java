@@ -1,6 +1,7 @@
 package com.ringcentral.platform.health;
 
 import java.time.Duration;
+import java.util.Map;
 
 public interface HealthState {
 
@@ -11,4 +12,6 @@ public interface HealthState {
     HealthStateEnum getGlobalState();
 
     java.time.Instant getLastChanged();
+
+    Map<HealthCheckID, LatestHealthCheckState> getDetails();
 }

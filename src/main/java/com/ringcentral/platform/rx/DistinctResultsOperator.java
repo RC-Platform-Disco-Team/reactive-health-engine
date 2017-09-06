@@ -75,7 +75,7 @@ public class DistinctResultsOperator implements Observable.Operator<HealthCheckR
                 HealthStateEnum newState = t.getState();
 
                 if (hasPrevious) {
-                    if (newState == previousState) {
+                    if (t.getType() == PASSIVE && newState == previousState) {
                         log.debug("Check result {} for healthcheck {} was filtered as unchanging", newState, t.getId());
                         request(1);
                     } else {

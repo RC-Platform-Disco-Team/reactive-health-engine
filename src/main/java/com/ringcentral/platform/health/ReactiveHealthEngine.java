@@ -24,7 +24,8 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static com.ringcentral.platform.health.HealthCheckSignal.Type.*;
-import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ReactiveHealthEngine implements HealthEngine {
 
@@ -43,7 +44,7 @@ public class ReactiveHealthEngine implements HealthEngine {
     private final Subject<HealthCheckSignal, HealthCheckSignal> managementSubject = PublishSubject.<HealthCheckSignal>create().toSerialized();
     private final Subject<HealthCheckRequest, HealthCheckRequest> rescheduleSubject = PublishSubject.<HealthCheckRequest>create().toSerialized();
 
-    public ReactiveHealthEngine(HealthCheckConfig healthCheckConfig, HealthEngineConfigImpl healthEngineConfig,
+    public ReactiveHealthEngine(HealthCheckConfig healthCheckConfig, HealthEngineConfig healthEngineConfig,
                                 Clock clock, HealthCheckFunction... checkFunctions) {
         this.log = LoggerFactory.getLogger(healthEngineConfig.getLoggerName());
         this.clock = clock;
@@ -56,26 +57,26 @@ public class ReactiveHealthEngine implements HealthEngine {
         this.forcedExecutor = new ThreadPoolExecutor(healthEngineConfig.getForcedThreadPoolSize(), healthEngineConfig.getForcedThreadPoolSize(),
                 0, MILLISECONDS, new LinkedBlockingQueue<>(healthEngineConfig.getForcedQueueSize()));
         this.executionTimeout = healthEngineConfig.getExecutionTimeout();
-        this.checkFunctionsMap = null;//convertCheckersToMap(checkFunctions, HealthCheckFunction::getId, t -> t);
-        this.state = null;//fillInitialHealthState(checkFunctions, healthCheckConfig);
+        this.checkFunctionsMap = convertCheckersToMap(checkFunctions, HealthCheckFunction::getId, t -> t);
+        this.state = fillInitialHealthState(checkFunctions, healthCheckConfig);
 
-//        scheduleFirstChecks(healthCheckConfig, healthEngineConfig);
+        scheduleFirstChecks(healthCheckConfig, healthEngineConfig);
     }
 
     @Override
     public void subscribeOnPassive(Observable<HealthCheckResult> passiveStream) {
-//        log.debug("Subscribe HealthEngine on aggregated stream");
-//        passiveStream.subscribe(passiveSubject);
+        log.debug("Subscribe HealthEngine on aggregated stream");
+        passiveStream.subscribe(passiveSubject);
     }
 
-    private void scheduleFirstChecks(HealthCheckConfig healthCheckConfig, HealthEngineConfigImpl healthEngineConfig) {
-//        Observable<HealthCheckRequest> initialObservable = createInitialSchedulingObservable(healthCheckConfig, healthEngineConfig, checkFunctionsMap.values());
+    private void scheduleFirstChecks(HealthCheckConfig healthCheckConfig, HealthEngineConfig healthEngineConfig) {
+        Observable<HealthCheckRequest> initialObservable = createInitialSchedulingObservable(healthCheckConfig, healthEngineConfig, checkFunctionsMap.values());
         Observable<HealthCheckSignal> expirationSignalObservable = createExpirationSignalObservable(healthEngineConfig); // sends repeated expiration signals
-//        Observable<HealthCheckResultWrapper> inputObservable = Observable.merge(initialObservable, rescheduleSubject)
-//                .flatMap(this::parallelActiveCheckExecution);
-//        Observable<HealthCheckResultWrapper> passiveObservable = createPassiveObservable();
+        Observable<HealthCheckResultWrapper> inputObservable = Observable.merge(initialObservable, rescheduleSubject)
+                .flatMap(this::parallelActiveCheckExecution);
+        Observable<HealthCheckResultWrapper> passiveObservable = createPassiveObservable();
 
-        Observable<HealthCheckResultWrapper> filteredCheckResultObservable = /*Observable.merge(inputObservable, */forceSubject/*, passiveObservable)*/
+        Observable<HealthCheckResultWrapper> filteredCheckResultObservable = Observable.merge(inputObservable, forceSubject, passiveObservable)
                 .groupBy(HealthCheckResultWrapper::getId)
                 .flatMap(go -> go.lift(new DistinctResultsOperator())); // this filters non-changing signals
 
@@ -99,47 +100,47 @@ public class ReactiveHealthEngine implements HealthEngine {
                 .map(l -> HealthCheckSignal.expiration());
     }
 
-//    private Observable<HealthCheckRequest> createInitialSchedulingObservable(HealthCheckConfig healthCheckConfig, HealthEngineConfigImpl healthEngineConfig, Collection<HealthCheckFunction> checks) {
-//        LongStream initialDelays = healthEngineConfig.initialDelaysInSeconds(checks.size());
-//        return Observable.from(checks).map(f -> createRequest(f, PERIODIC, healthCheckConfig))
-//                .zipWith(initialDelays::iterator, (ch, delay) -> Observable.just(ch).delay(delay, SECONDS))
-//                .flatMap(t -> t);
-//    }
+    private Observable<HealthCheckRequest> createInitialSchedulingObservable(HealthCheckConfig healthCheckConfig, HealthEngineConfig healthEngineConfig, Collection<HealthCheckFunction> checks) {
+        LongStream initialDelays = healthEngineConfig.initialDelaysInSeconds(checks.size());
+        return Observable.from(checks).map(f -> createRequest(f, PERIODIC, healthCheckConfig))
+                .zipWith(initialDelays::iterator, (ch, delay) -> Observable.just(ch).delay(delay, SECONDS))
+                .flatMap(t -> t);
+    }
 
-//    private HealthStateV1 fillInitialHealthState(HealthCheckFunction[] checkers, HealthCheckConfig healthCheckConfig) {
-//        if (checkers != null) {
-//            Instant instant = clock.instant();
-//            return new HealthStateV1(Arrays.asList(checkers), instant);
-//        } else {
-//            return new HealthStateV1();
-//        }
-//    }
+    private HealthStateV1 fillInitialHealthState(HealthCheckFunction[] checkers, HealthCheckConfig healthCheckConfig) {
+        if (checkers != null) {
+            Instant instant = clock.instant();
+            return new HealthStateV1(Arrays.asList(checkers), instant);
+        } else {
+            return new HealthStateV1();
+        }
+    }
 
-//    private <T, U> Map<T, U> convertCheckersToMap(HealthCheckFunction[] checkers, Function<HealthCheckFunction, T> keyF, Function<HealthCheckFunction, U> valueF) {
-//        return checkers == null ? Collections.emptyMap() : Stream.of(checkers).collect(Collectors.toMap(keyF, valueF));
-//    }
+    private <T, U> Map<T, U> convertCheckersToMap(HealthCheckFunction[] checkers, Function<HealthCheckFunction, T> keyF, Function<HealthCheckFunction, U> valueF) {
+        return checkers == null ? Collections.emptyMap() : Stream.of(checkers).collect(Collectors.toMap(keyF, valueF));
+    }
 
-//    private HealthCheckRequest createRequest(HealthCheckFunction function, HealthCheckSignal.Type type, HealthCheckConfig config) {
-//        return new HealthCheckRequest(function, type, config.isDisabled(function.getId()), config.getSlowTimeout(function.getId()));
-//    }
+    private HealthCheckRequest createRequest(HealthCheckFunction function, HealthCheckSignal.Type type, HealthCheckConfig config) {
+        return new HealthCheckRequest(function, type, config.isDisabled(function.getId()), config.getSlowTimeout(function.getId()));
+    }
 
-//    private Observable<HealthCheckResultWrapper> createPassiveObservable() {
-//        return passiveSubject
-//                .filter(result -> {     // filter non-existing passive signals
-//                    if (!checkFunctionsMap.containsKey(result.getId())) {
-//                        log.warn("received passive event {} for non-existing check {}", result.getState(), result.getId());
-//                        return false;
-//                    }
-//                    return true;
-//                })
-//                .lift(new SafeMapOperator<>(false,
-//                        result -> {
-//                            log.debug("received passive event {} for {}", result.getState(), result.getId());
-//                            HealthImpactMapping impactMapping = checkFunctionsMap.get(result.getId()).getImpactMapping();
-//                            return new HealthCheckResultWrapper(result, PASSIVE, impactMapping);
-//                        },
-//                        e -> log.warn(e.getMessage(), e)));
-//    }
+    private Observable<HealthCheckResultWrapper> createPassiveObservable() {
+        return passiveSubject
+                .filter(result -> {     // filter non-existing passive signals
+                    if (!checkFunctionsMap.containsKey(result.getId())) {
+                        log.warn("received passive event {} for non-existing check {}", result.getState(), result.getId());
+                        return false;
+                    }
+                    return true;
+                })
+                .lift(new SafeMapOperator<>(false,
+                        result -> {
+                            log.debug("received passive event {} for {}", result.getState(), result.getId());
+                            HealthImpactMapping impactMapping = checkFunctionsMap.get(result.getId()).getImpactMapping();
+                            return new HealthCheckResultWrapper(result, PASSIVE, impactMapping);
+                        },
+                        e -> log.warn(e.getMessage(), e)));
+    }
 
     private Observable<HealthCheckResultWrapper> parallelActiveCheckExecution(HealthCheckRequest request) {
         return createParallelObservable(request, Schedulers.from(scheduledExecutor))
@@ -190,7 +191,7 @@ public class ReactiveHealthEngine implements HealthEngine {
         switch (signal.getType()) {
             case PERIODIC:
                 processResult((HealthCheckResultWrapper) signal, healthCheckConfig);
-//                reschedule((HealthCheckResultWrapper) signal, healthCheckConfig);
+                reschedule((HealthCheckResultWrapper) signal, healthCheckConfig);
                 break;
             case FORCED:
                 processResult((HealthCheckResultWrapper) signal, healthCheckConfig);
@@ -211,15 +212,15 @@ public class ReactiveHealthEngine implements HealthEngine {
     }
 
     // works in single thread (not thread safe)
-//    private void reschedule(HealthCheckResultWrapper result, HealthCheckConfig healthCheckConfig) {
-//        HealthCheckID id = result.getId();
-//        Duration delay = (result.getState() == HealthStateEnum.Critical) ? healthCheckConfig.getRetryPeriod(id) : healthCheckConfig.getPeriod(id);
-//        log.debug("Schedule new execution of {} health check after {}", id, new DurationFormatter(delay).printMmSs());
-//        HealthCheckRequest request = createRequest(checkFunctionsMap.get(id), PERIODIC, healthCheckConfig);
-//        Observable.timer(delay.toMillis(), MILLISECONDS)
-//                .subscribeOn(Schedulers.newThread())
-//                .subscribe(i -> rescheduleSubject.onNext(request));
-//    }
+    private void reschedule(HealthCheckResultWrapper result, HealthCheckConfig healthCheckConfig) {
+        HealthCheckID id = result.getId();
+        Duration delay = (result.getState() == HealthStateEnum.Critical) ? healthCheckConfig.getRetryPeriod(id) : healthCheckConfig.getPeriod(id);
+        log.debug("Schedule new execution of {} health check after {}", id, TimeFormatter.printMmSs(delay));
+        HealthCheckRequest request = createRequest(checkFunctionsMap.get(id), PERIODIC, healthCheckConfig);
+        Observable.timer(delay.toMillis(), MILLISECONDS)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe(i -> rescheduleSubject.onNext(request));
+    }
 
     // works in single thread (not thread safe)
     private void processResult(HealthCheckResultWrapper result, HealthCheckConfig healthCheckConfig) {
@@ -247,7 +248,9 @@ public class ReactiveHealthEngine implements HealthEngine {
         log.debug("force sync health check started");
         List<HealthCheckRequest> healthCheckRequests = createHealthCheckRequests(config);
         Observable.from(healthCheckRequests).flatMap(this::parallelForceCheckExecution)
-                .toBlocking().subscribe(forceSubject::onNext, e -> {throw new ForceHealthCheckFailedException("", e);});
+                .toBlocking().subscribe(forceSubject::onNext, e -> {
+            throw new ForceHealthCheckFailedException("", e);
+        });
         log.debug("force sync health check finished");
     }
 
@@ -263,8 +266,7 @@ public class ReactiveHealthEngine implements HealthEngine {
     }
 
     private List<HealthCheckRequest> createHealthCheckRequests(HealthCheckConfig config) {
-//        return checkFunctionsMap.values().stream().map(f -> createRequest(f, FORCED, config)).collect(Collectors.toList());
-        return null;
+        return checkFunctionsMap.values().stream().map(f -> createRequest(f, FORCED, config)).collect(Collectors.toList());
     }
 
     private HealthCheckConfig getConfig() {

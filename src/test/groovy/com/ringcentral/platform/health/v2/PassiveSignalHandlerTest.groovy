@@ -1,6 +1,7 @@
 package com.ringcentral.platform.health.v2
 
 import com.ringcentral.platform.health.HealthCheckResult
+import com.ringcentral.platform.health.demo.TestFunction
 import rx.observers.TestSubscriber
 import spock.lang.Specification
 

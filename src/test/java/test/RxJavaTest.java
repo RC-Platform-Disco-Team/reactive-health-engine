@@ -1,8 +1,13 @@
 package test;
 
 
+import com.ringcentral.platform.health.v2.QWE;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
-//@RunWith(MockitoJUnitRunner.class)
+import javax.swing.*;
+import java.util.Collections;
+
 public class RxJavaTest {
 
 //        public int show() {
@@ -14,8 +19,11 @@ public class RxJavaTest {
 //            b.show();
 //        }
 
-//    @Test
+    @Test
     public void t1() throws InterruptedException {
+
+        JFrame window = new QWE(Collections.emptyList());
+        window.setVisible(true);
 
 //        Observable.from(new Integer[]{1,2,3,4,5,0,1,2,3,4,5})
 //                .lift(new SafeMapOperator<>(false, i -> {if (i== 0) throw new RuntimeException(); return i;}, e -> e.printStackTrace()))

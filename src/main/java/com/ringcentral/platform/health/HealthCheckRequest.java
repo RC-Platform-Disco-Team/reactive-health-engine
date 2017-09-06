@@ -47,7 +47,7 @@ public class HealthCheckRequest {
         Duration executionTime = Duration.between(start, end);
 
         if (result.getState() == HealthStateEnum.OK && executionTime.compareTo(slowTimeout) > 0) {
-            String prettyExecutionTime = new DurationFormatter(executionTime).printSsMs();
+            String prettyExecutionTime = TimeFormatter.printSsMs(executionTime);
             log.warn("Slow execution of {} healthcheck: {}", function.getId(), prettyExecutionTime);
             result = function.warning("Slow execution: " + prettyExecutionTime);
         }

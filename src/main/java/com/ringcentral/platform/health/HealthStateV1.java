@@ -61,6 +61,11 @@ public class HealthStateV1 implements HealthState {
         globalState = calculateNewGlobalState(result);
     }
 
+    @Override
+    public Map<HealthCheckID, LatestHealthCheckState> getDetails() {
+        return null;
+    }
+
     private LatestHealthCheckState calculateNewCheckState(LatestHealthCheckState oldState, HealthCheckResultWrapper newCheckResult) {
         Instant newLastExecuted = newCheckResult.getExecutedAt();
         Instant newLastChanged = newCheckResult.getState() != oldState.getState() ? newLastExecuted : oldState.getLastChanged();

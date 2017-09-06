@@ -8,7 +8,7 @@ class DurationFormatterTest extends Specification {
 
     def "should display only present parts from minutes and seconds"() {
         expect:
-        new DurationFormatter(source).printMmSs() == result
+        TimeFormatter.printMmSs(source) == result
 
         where:
         source                 || result
@@ -19,7 +19,7 @@ class DurationFormatterTest extends Specification {
 
     def "should display only present parts from seconds and millis"() {
         expect:
-        new DurationFormatter(source).printSsMs() == result
+        TimeFormatter.printSsMs(source) == result
 
         where:
         source                  || result

@@ -1,6 +1,7 @@
 package com.ringcentral.platform.health.v2
 
 import com.ringcentral.platform.health.*
+import com.ringcentral.platform.health.demo.TestFunction
 import org.hamcrest.CustomTypeSafeMatcher
 import org.hamcrest.Description
 import rx.Observable
@@ -16,7 +17,7 @@ import java.util.stream.Collectors
 
 import static com.ringcentral.platform.health.HealthCheckSignal.Type.PERIODIC
 import static com.ringcentral.platform.health.HealthStateEnum.*
-import static com.ringcentral.platform.health.v2.TestFunction.*
+import static com.ringcentral.platform.health.demo.TestFunction.*
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 import static org.hamcrest.CoreMatchers.everyItem
@@ -265,7 +266,7 @@ class HealthCheckExecutorTest extends Specification {
     }
 
     def toRequest(TestFunction func) {
-        new HealthCheckRequest(func, PERIODIC, false, func.slowDuration)
+        new HealthCheckRequest(func, PERIODIC, false, func.getSlowDuration())
     }
 
     def hasState(expected) {

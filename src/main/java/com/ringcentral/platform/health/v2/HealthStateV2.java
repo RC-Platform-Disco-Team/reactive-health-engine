@@ -45,4 +45,8 @@ public class HealthStateV2 implements HealthState {
     public void updateState(HealthCheckResultWrapper result) {
 
     }
+
+    public Map<HealthCheckID, LatestHealthCheckState> getDetails() {
+        return Collections.unmodifiableMap(stateHolder);
+    }
 }

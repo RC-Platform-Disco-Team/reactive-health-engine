@@ -53,7 +53,7 @@ public class HealthEngineConfigImpl implements HealthEngineConfig {
         }
     }
 
-    LongStream initialDelaysInSeconds(int length) {
+    public LongStream initialDelaysInSeconds(int length) {
         return initialDelay.initialDelaysInSeconds(length);
     }
 

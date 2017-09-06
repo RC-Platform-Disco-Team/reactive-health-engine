@@ -1,7 +1,6 @@
 package com.ringcentral.platform.health.v2;
 
 import com.ringcentral.platform.health.*;
-import com.ringcentral.platform.health.HealthCheckSignal.TickSignal;
 import lombok.extern.slf4j.Slf4j;
 import rx.Observable;
 import rx.Subscriber;
@@ -15,11 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+@SuppressWarnings("FieldCanBeLocal")
 @Slf4j
 public class ReactiveHealthEngineV2 implements HealthEngine {
 
     private final AtomicReference<HealthCheckConfig> currentHealthCheckConfig;
-    private Clock clock;
+    private Clock clock = Clock.systemUTC();
     private final HealthState state;
     private final HealthCheckExecutor scheduledExecutor;
     private final HealthCheckExecutor forcedExecutor;
@@ -34,6 +34,7 @@ public class ReactiveHealthEngineV2 implements HealthEngine {
         //TODO create according to config
         ScheduledThreadPool scheduledThreadPool = new IsolatingScheduledThreadPool(checkFunctions);
         this.scheduledExecutor = new HealthCheckExecutor(engineCfg, scheduledThreadPool, clock);
+
         ScheduledThreadPool forcedThreadPool = new IsolatingScheduledThreadPool(checkFunctions);
         this.forcedExecutor = new HealthCheckExecutor(engineCfg, forcedThreadPool, clock);
         forceSubject = PublishSubject.<HealthCheckResultWrapper>create().toSerialized();
@@ -50,14 +51,12 @@ public class ReactiveHealthEngineV2 implements HealthEngine {
 
         Subscriber<HealthCheckSignal> analyzer = HealthResultsAnalyzer.create(state);
 
-
         Observable<HealthCheckResultWrapper> resultingObservable = Observable.merge(passiveSubject, activeObservable, forceSubject);
 
         resultingObservable.subscribe(analyzer);
 
         TickSignalObservable.once(currentHealthCheckConfig::get).flatMap(healthCheckSplitter::convertTickToRequest)
                 .flatMap(forcedExecutor::execute).toBlocking().subscribe(forceSubject::onNext, e -> {throw new ForceHealthCheckFailedException("", e);});
-
     }
 
     @Override
@@ -72,17 +71,17 @@ public class ReactiveHealthEngineV2 implements HealthEngine {
 
     @Override
     public Map<HealthCheckID, LatestHealthCheckState> getAllResults() {
-        return null;
+        return state.getDetails();
     }
 
     @Override
     public HealthStateEnum getGlobalState() {
-        return null;
+        return state.getGlobalState();
     }
 
     @Override
     public Instant getLastChanged() {
-        return null;
+        return state.getLastChanged();
     }
 
     @Override

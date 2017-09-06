@@ -26,6 +26,8 @@ public interface HealthEngineConfig {
 
     String getLoggerName();
 
+    LongStream initialDelaysInSeconds(int length);
+
     interface InitialDelayConfig {
         LongStream initialDelaysInSeconds(int size);
     }
